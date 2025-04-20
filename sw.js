@@ -4,9 +4,9 @@ const CACHE_TIMESTAMP = Date.now(); // Unique per deployment
 const CACHE_NAME = `password-grid-cache-${CACHE_VERSION}-${CACHE_TIMESTAMP}`;
 
 const urlsToCache = [
-    '/', '/index.html', '/css/styles.css', '/js/app.js', '/js/grid-generator.js', 
-    '/js/ui-controller.js', '/manifest.json', '/presets.json',
-    '/img/icons/icon-192x192.png', '/img/icons/icon-512x512.png'
+    './', './index.html', './css/styles.css', './js/app.js', './js/grid-generator.js', 
+    './js/ui-controller.js', './manifest.json', './presets.json',
+    './img/icons/icon-192x192.png', './img/icons/icon-512x512.png'
 ];
 
 self.addEventListener('install', event => {
@@ -36,7 +36,7 @@ self.addEventListener('fetch', event => {
             .catch(() => {
                 // Fallback to cache if network fails
                 return caches.match(event.request)
-                    .then(response => response || caches.match('/index.html'));
+                    .then(response => response || caches.match('./index.html'));
             })
     );
 });

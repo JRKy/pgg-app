@@ -177,7 +177,7 @@ class UIController {
 
     async loadPresets() {
         try {
-            const response = await fetch('/presets.json');
+            const response = await fetch('./presets.json');
             if (!response.ok) {
                 throw new Error('Failed to load presets');
             }
