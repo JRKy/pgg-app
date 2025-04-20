@@ -2,18 +2,18 @@
     "name": "Password Grid Generator",
     "short_name": "Password Grid Generator",
     "description": "Generate secure password grids for creating strong, memorable passwords",
-    "start_url": "/index.html",
+    "start_url": "./index.html",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#4285f4",
     "icons": [
         {
-            "src": "/img/icons/icon-192x192.png",
+            "src": "./img/icons/icon-192x192.png",
             "sizes": "192x192",
             "type": "image/png"
         },
         {
-            "src": "/img/icons/icon-512x512.png",
+            "src": "./img/icons/icon-512x512.png",
             "sizes": "512x512",
             "type": "image/png"
         }

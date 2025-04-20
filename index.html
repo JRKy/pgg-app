@@ -9,9 +9,9 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'">
     <title>Password Grid Generator</title>
     <meta name="description" content="Create secure password grids for generating strong, memorable passwords">
-    <link rel="stylesheet" href="css/styles.css?v=2.0">
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="./css/styles.css?v=2.0">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" type="image/x-icon" href="./favicon.ico">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 </head>
 <body>
@@ -232,7 +232,7 @@
                 navigator.serviceWorker.getRegistrations().then(registrations => {
                     registrations.forEach(reg => reg.unregister());
                 }).then(() => {
-                    navigator.serviceWorker.register('/sw.js?v=' + Date.now())
+                    navigator.serviceWorker.register('./sw.js?v=' + Date.now())
                         .then(reg => console.log('Service Worker registered'))
                         .catch(err => console.log('Service Worker registration failed: ', err));
                 });
