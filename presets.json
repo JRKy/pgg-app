@@ -1,0 +1,50 @@
+{
+    "version": "1.0.0",
+    "presets": {
+        "strong": {
+            "label": "Strong Security",
+            "description": "Maximum security with all character sets",
+            "config": {
+                "includeUpper": true,
+                "includeLower": true,
+                "includeNumbers": true,
+                "includeSpecial": true,
+                "avoidAmbiguous": true,
+                "gridRows": 20,
+                "gridCols": 20,
+                "shadingOption": 1,
+                "innerLines": true
+            }
+        },
+        "balanced": {
+            "label": "Balanced",
+            "description": "Good security with readable characters",
+            "config": {
+                "includeUpper": true,
+                "includeLower": true,
+                "includeNumbers": true,
+                "includeSpecial": false,
+                "avoidAmbiguous": true,
+                "gridRows": 16,
+                "gridCols": 16,
+                "shadingOption": 2,
+                "innerLines": true
+            }
+        },
+        "memorable": {
+            "label": "Memorable",
+            "description": "Easier to remember, moderate security",
+            "config": {
+                "includeUpper": true,
+                "includeLower": true,
+                "includeNumbers": false,
+                "includeSpecial": false,
+                "avoidAmbiguous": true,
+                "gridRows": 12,
+                "gridCols": 12,
+                "shadingOption": 0,
+                "innerLines": false
+            }
+        }
+    }
+}

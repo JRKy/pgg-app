@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'">
+    <title>Password Grid Generator</title>
+    <meta name="description" content="Create secure password grids for generating strong, memorable passwords">
+    <link rel="stylesheet" href="css/styles.css?v=2.0">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <header role="banner">
+            <h1 id="main-heading">Password Grid Generator</h1>
+        </header>
+        
+        <div class="options-panel" role="region" aria-labelledby="options-heading">
+            <h2 id="options-heading">Grid Options</h2>
+            <div class="preset-buttons" 
+                 role="toolbar" 
+                 aria-label="Preset configurations"
+                 aria-describedby="preset-description">
+                <p id="preset-description" class="visually-hidden">
+                    Select from predefined configurations for different security levels
+                </p>
+            </div>
+            <p>Presets offer quick setups—hover for details.</p>
+            
+            <div class="option-row">
+                <label for="seed-value">Seed Value:</label>
+                <input type="text" id="seed-value" value=""
+                       aria-describedby="seed-tooltip"
+                       role="textbox">
+                <button id="random-seed-btn" class="secondary-button" 
+                        aria-label="Generate random seed">
+                    Random Seed
+                </button>
+                <select id="seed-type" role="combobox">
+                    <option value="passphrase">Passphrase</option>
+                    <option value="random">Random String</option>
+                </select>
+                <div id="seed-tooltip" role="tooltip" class="tooltip">
+                    Seed value determines grid generation pattern. Use different seeds for different grids.
+                </div>
+            </div>
+            
+            <fieldset class="option-group">
+                <legend>Include Character Sets:</legend>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="uppercase" checked 
+                           aria-checked="true" role="checkbox">
+                    <label for="uppercase">Uppercase (A-Z)</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="lowercase" checked 
+                           aria-checked="true" role="checkbox">
+                    <label for="lowercase">Lowercase (a-z)</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="numbers" checked 
+                           aria-checked="true" role="checkbox">
+                    <label for="numbers">Numbers (0-9)</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="special" checked 
+                           aria-checked="true" role="checkbox">
+                    <label for="special">Special (!@#$%^&*...)</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="avoid-ambiguous" 
+                           aria-checked="false" role="checkbox">
+                    <label for="avoid-ambiguous">Avoid Ambiguous (0O1lI...)</label>
+                    <div id="avoid-ambiguous-tooltip" role="tooltip" class="tooltip">
+                        Excludes characters that can be easily confused (like 0 and O, 1 and l)
+                    </div>
+                </div>
+            </fieldset>
+            <hr>
+
+            <fieldset class="option-group">
+                <legend>Grid Settings:</legend>
+                <div class="option-row">
+                    <label for="grid-rows">Grid Rows (5-38):</label>
+                    <input type="number" id="grid-rows" min="5" max="38" value="16" 
+                           role="spinbutton">
+                </div>
+                <div class="option-row">
+                    <label for="grid-cols">Grid Columns (5-26):</label>
+                    <input type="number" id="grid-cols" min="5" max="26" value="16" 
+                           role="spinbutton">
+                </div>
+            </fieldset>
+            <hr>
+
+            <fieldset class="option-group">
+                <legend>Appearance:</legend>
+                <div class="option-row">
+                    <label for="shading">Shading Pattern:</label>
+                    <select id="shading" role="combobox">
+                        <option value="0">None</option>
+                        <option value="1">Checkerboard (2x2)</option>
+                        <option value="2">Alternating Rows</option>
+                        <option value="3">Diagonal Stripes</option>
+                        <option value="4">Quadrants</option>
+                        <option value="5">Sparse Dots</option>
+                    </select>
+                    <div id="shading-tooltip" role="tooltip" class="tooltip">
+                        Choose shading pattern for better visual distinction of cells
+                    </div>
+                </div>
+                <div class="option-row">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="inner-lines" 
+                               aria-checked="false" role="checkbox">
+                        <label for="inner-lines">Show Alternating Grid Lines (Grey)</label>
+                    </div>
+                </div>
+                <div class="option-row">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="colorblind-mode" 
+                               aria-checked="false" role="checkbox">
+                        <label for="colorblind-mode">Colorblind Mode (Alternating bands)</label>
+                    </div>
+                </div>
+                <div class="option-row">
+                    <label for="grid-theme">Grid Theme:</label>
+                    <select id="grid-theme" role="combobox">
+                        <option value="classic">Classic</option>
+                        <option value="blueprint">Blueprint</option>
+                        <option value="retro">Retro</option>
+                        <option value="minimal">Minimal</option>
+                        <option value="forest">Forest</option>
+                    </select>
+                </div>
+                <div class="option-row">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="color-numbers" checked 
+                               aria-checked="true" role="checkbox">
+                        <label for="color-numbers">Color Numbers (Blue)</label>
+                    </div>
+                </div>
+                <div class="option-row">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="color-specials" checked 
+                               aria-checked="true" role="checkbox">
+                        <label for="color-specials">Color Specials (Red)</label>
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+        
+        <div class="grid-container" role="region" aria-labelledby="grid-heading">
+            <h2 id="grid-heading" class="visually-hidden">Password Grid</h2>
+            <div class="status-panel">
+                <div class="status-item">
+                    <span class="status-label">Character Sets:</span>
+                    <span id="char-sets-status">Upper Lower Numbers Special</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Entropy per Char:</span>
+                    <span id="entropy-per-char">6.55 bits</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Password Strength:</span>
+                    <span id="password-strength">104.8 bits</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Complexity Rating:</span>
+                    <span id="complexity-rating" class="very-strong">Very Strong</span>
+                </div>
+            </div>
+            
+            <div id="password-grid"></div>
+            
+            <div class="actions">
+                <button id="print-btn" class="secondary-button" 
+                        aria-label="Print current grid"
+                        role="button">
+                    Print Grid
+                </button>
+                <button id="share-btn" class="secondary-button" 
+                        aria-label="Share current grid settings"
+                        role="button">
+                    Share Grid
+                </button>
+                <button id="export-png-btn" class="secondary-button" 
+                        aria-label="Export grid as PNG"
+                        role="button">
+                    Export as PNG
+                </button>
+                <button id="export-csv-btn" class="secondary-button" 
+                        aria-label="Export grid as CSV"
+                        role="button">
+                    Export as CSV
+                </button>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h2>How to Use This Password Grid</h2>
+            <p>A password grid helps you create strong, memorable passwords by combining characters from a unique pattern you choose.</p>
+            <ol>
+                <li>The Seed Value creates your unique grid—change it to get a new layout (e.g., "cake-home-star").</li>
+                <li>Choose a starting cell (like A1, C5, E15, etc.).</li>
+                <li>Follow a movement pattern (e.g., down to A2, right to B2, for "Kj9").</li>
+                <li>The characters you encounter become your password.</li>
+                <li>Use different starting positions for different services (e.g., A1 for Gmail, C5 for Netflix—same pattern, different passwords).</li>
+                <li>Numbers appear in <span class="blue-text">BLUE</span> and special characters in <span class="red-text">RED</span> if coloring is enabled (toggle in Appearance). Grey grid lines can be added for clarity.</li>
+                <li>For maximum security, use patterns with at least 12-16 characters—check the status panel above the grid for strength.</li>
+                <li>Adjust options above—the grid updates instantly.</li>
+            </ol>
+        </div>
+        
+        <footer>
+            <p>Password Grid Generator PWA - <a href="https://github.com/JRKy/pgg" target="_blank">View on GitHub</a></p>
+        </footer>
+    </div>
+
+    <script src="js/security.js"></script>
+    <script src="js/grid-generator.js?v=2.0"></script>
+    <script src="js/ui-controller.js?v=2.0"></script>
+    <script src="js/app.js?v=2.0"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                    registrations.forEach(reg => reg.unregister());
+                }).then(() => {
+                    navigator.serviceWorker.register('/sw.js?v=' + Date.now())
+                        .then(reg => console.log('Service Worker registered'))
+                        .catch(err => console.log('Service Worker registration failed: ', err));
+                });
+            });
+        }
+    </script>
+</body>
+</html>
