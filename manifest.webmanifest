@@ -1,0 +1,43 @@
+{
+    "name": "Password Grid Generator",
+    "short_name": "PGG",
+    "description": "Create secure password grids for generating strong, memorable passwords",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#3b82f6",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "/img/icons/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/img/icons/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": ["security", "utilities"],
+    "screenshots": [
+        {
+            "src": "/img/screenshots/screenshot1.png",
+            "sizes": "1280x720",
+            "type": "image/png",
+            "platform": "wide",
+            "label": "Password Grid Generator Interface"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Generate New Grid",
+            "short_name": "New Grid",
+            "description": "Create a new password grid",
+            "url": "/?action=new",
+            "icons": [{ "src": "/img/icons/new-grid.png", "sizes": "192x192" }]
+        }
+    ]
+}
