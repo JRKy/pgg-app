@@ -1,243 +1,285 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>
+        // Theme handling
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+        }
+
+        // Initialize theme immediately
+        const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        setTheme(savedTheme);
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <title>Password Grid Generator</title>
     <meta name="description" content="Create secure password grids for generating strong, memorable passwords">
-    <link rel="stylesheet" href="./css/styles.css?v=2.0">
-    <link rel="manifest" href="./manifest.json">
+    <link rel="stylesheet" href="./css/styles.css">
+    <link rel="manifest" href="./manifest.webmanifest">
     <link rel="icon" type="image/x-icon" href="./favicon.ico">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <header role="banner">
-            <h1 id="main-heading">Password Grid Generator</h1>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-content">
+                <h1>Password Grid Generator</h1>
+                <div class="header-actions">
+                    <button id="theme-toggle" class="icon-button" aria-label="Toggle theme" type="button">
+                        <svg class="sun-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="5"/>
+                            <line x1="12" y1="1" x2="12" y2="3"/>
+                            <line x1="12" y1="21" x2="12" y2="23"/>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                            <line x1="1" y1="12" x2="3" y2="12"/>
+                            <line x1="21" y1="12" x2="23" y2="12"/>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                        </svg>
+                        <svg class="moon-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                        </svg>
+                    </button>
+                    <button id="help-btn" class="icon-button" aria-label="Help" type="button">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M9.5 9.5a3 3 0 0 1 5 0c0 1.5-2.5 2-2.5 4"/>
+                            <circle cx="12" cy="17" r="0.5" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </header>
-        
-        <div class="options-panel" role="region" aria-labelledby="options-heading">
-            <h2 id="options-heading">Grid Options</h2>
-            <div class="preset-buttons" 
-                 role="toolbar" 
-                 aria-label="Preset configurations"
-                 aria-describedby="preset-description">
-                <p id="preset-description" class="visually-hidden">
-                    Select from predefined configurations for different security levels
-                </p>
-            </div>
-            <p>Presets offer quick setups—hover for details.</p>
-            
-            <div class="option-row">
-                <label for="seed-value">Seed Value:</label>
-                <input type="text" id="seed-value" value=""
-                       aria-describedby="seed-tooltip"
-                       role="textbox">
-                <button id="random-seed-btn" class="secondary-button" 
-                        aria-label="Generate random seed">
-                    Random Seed
-                </button>
-                <select id="seed-type" role="combobox">
-                    <option value="passphrase">Passphrase</option>
-                    <option value="random">Random String</option>
-                </select>
-                <div id="seed-tooltip" role="tooltip" class="tooltip">
-                    Seed value determines grid generation pattern. Use different seeds for different grids.
-                </div>
-            </div>
-            
-            <fieldset class="option-group">
-                <legend>Include Character Sets:</legend>
-                <div class="checkbox-group">
-                    <input type="checkbox" id="uppercase" checked 
-                           aria-checked="true" role="checkbox">
-                    <label for="uppercase">Uppercase (A-Z)</label>
-                </div>
-                <div class="checkbox-group">
-                    <input type="checkbox" id="lowercase" checked 
-                           aria-checked="true" role="checkbox">
-                    <label for="lowercase">Lowercase (a-z)</label>
-                </div>
-                <div class="checkbox-group">
-                    <input type="checkbox" id="numbers" checked 
-                           aria-checked="true" role="checkbox">
-                    <label for="numbers">Numbers (0-9)</label>
-                </div>
-                <div class="checkbox-group">
-                    <input type="checkbox" id="special" checked 
-                           aria-checked="true" role="checkbox">
-                    <label for="special">Special (!@#$%^&*...)</label>
-                </div>
-                <div class="checkbox-group">
-                    <input type="checkbox" id="avoid-ambiguous" 
-                           aria-checked="false" role="checkbox">
-                    <label for="avoid-ambiguous">Avoid Ambiguous (0O1lI...)</label>
-                    <div id="avoid-ambiguous-tooltip" role="tooltip" class="tooltip">
-                        Excludes characters that can be easily confused (like 0 and O, 1 and l)
-                    </div>
-                </div>
-            </fieldset>
-            <hr>
 
-            <fieldset class="option-group">
-                <legend>Grid Settings:</legend>
-                <div class="option-row">
-                    <label for="grid-rows">Grid Rows (5-38):</label>
-                    <input type="number" id="grid-rows" min="5" max="38" value="16" 
-                           role="spinbutton">
-                </div>
-                <div class="option-row">
-                    <label for="grid-cols">Grid Columns (5-26):</label>
-                    <input type="number" id="grid-cols" min="5" max="26" value="16" 
-                           role="spinbutton">
-                </div>
-            </fieldset>
-            <hr>
+        <!-- Add notification container -->
+        <div class="notification-container">
+            <div class="notification" id="notification" role="alert" aria-live="polite"></div>
+        </div>
 
-            <fieldset class="option-group">
-                <legend>Appearance:</legend>
-                <div class="option-row">
-                    <label for="shading">Shading Pattern:</label>
-                    <select id="shading" role="combobox">
-                        <option value="0">None</option>
-                        <option value="1">Checkerboard (2x2)</option>
-                        <option value="2">Alternating Rows</option>
-                        <option value="3">Diagonal Stripes</option>
-                        <option value="4">Quadrants</option>
-                        <option value="5">Sparse Dots</option>
-                    </select>
-                    <div id="shading-tooltip" role="tooltip" class="tooltip">
-                        Choose shading pattern for better visual distinction of cells
+        <main class="app-main">
+            <div class="security-metrics">
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                    </div>
+                    <div class="metric-content">
+                        <h3 class="metric-title">Password Strength</h3>
+                        <p class="metric-value" id="password-strength">0 bits</p>
+                        <p class="metric-description" id="complexity-rating">Very Weak</p>
                     </div>
                 </div>
-                <div class="option-row">
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="inner-lines" 
-                               aria-checked="false" role="checkbox">
-                        <label for="inner-lines">Show Alternating Grid Lines (Grey)</label>
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
                     </div>
-                </div>
-                <div class="option-row">
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="colorblind-mode" 
-                               aria-checked="false" role="checkbox">
-                        <label for="colorblind-mode">Colorblind Mode (Alternating bands)</label>
+                    <div class="metric-content">
+                        <h3 class="metric-title">Character Sets</h3>
+                        <p class="metric-value" id="char-sets-status">No sets selected</p>
                     </div>
-                </div>
-                <div class="option-row">
-                    <label for="grid-theme">Grid Theme:</label>
-                    <select id="grid-theme" role="combobox">
-                        <option value="classic">Classic</option>
-                        <option value="blueprint">Blueprint</option>
-                        <option value="retro">Retro</option>
-                        <option value="minimal">Minimal</option>
-                        <option value="forest">Forest</option>
-                    </select>
-                </div>
-                <div class="option-row">
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="color-numbers" checked 
-                               aria-checked="true" role="checkbox">
-                        <label for="color-numbers">Color Numbers (Blue)</label>
-                    </div>
-                </div>
-                <div class="option-row">
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="color-specials" checked 
-                               aria-checked="true" role="checkbox">
-                        <label for="color-specials">Color Specials (Red)</label>
-                    </div>
-                </div>
-            </fieldset>
-        </div>
-        
-        <div class="grid-container" role="region" aria-labelledby="grid-heading">
-            <h2 id="grid-heading" class="visually-hidden">Password Grid</h2>
-            <div class="status-panel">
-                <div class="status-item">
-                    <span class="status-label">Character Sets:</span>
-                    <span id="char-sets-status">Upper Lower Numbers Special</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Entropy per Char:</span>
-                    <span id="entropy-per-char">6.55 bits</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Password Strength:</span>
-                    <span id="password-strength">104.8 bits</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Complexity Rating:</span>
-                    <span id="complexity-rating" class="very-strong">Very Strong</span>
                 </div>
             </div>
-            
-            <div id="password-grid"></div>
-            
-            <div class="actions">
-                <button id="print-btn" class="secondary-button" 
-                        aria-label="Print current grid"
-                        role="button">
-                    Print Grid
-                </button>
-                <button id="share-btn" class="secondary-button" 
-                        aria-label="Share current grid settings"
-                        role="button">
-                    Share Grid
-                </button>
-                <button id="export-png-btn" class="secondary-button" 
-                        aria-label="Export grid as PNG"
-                        role="button">
-                    Export as PNG
-                </button>
-                <button id="export-csv-btn" class="secondary-button" 
-                        aria-label="Export grid as CSV"
-                        role="button">
-                    Export as CSV
+
+            <div id="password-grid" class="grid-container">
+                <!-- Grid will be rendered here -->
+            </div>
+
+            <div class="grid-settings">
+                <div class="grid-settings-header">
+                    <h2>Grid Feature Customization</h2>
+                </div>
+                
+                <div class="settings-grid">
+                    <!-- Grid Seed -->
+                    <div class="settings-group">
+                        <h3 class="settings-group-title">Grid Seed</h3>
+                        <div class="settings-row">
+                            <div class="settings-label">Seed Type:</div>
+                            <div class="settings-control">
+                                <select id="seed-type">
+                                    <option value="passphrase">Passphrase</option>
+                                    <option value="random">Random Characters</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="settings-row" id="word-count-container">
+                            <div class="settings-label">Word Count:</div>
+                            <div class="settings-control">
+                                <input type="number" id="word-count" min="3" max="7" value="3" step="1">
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-label">Seed Value:</div>
+                            <div class="settings-control">
+                                <div class="seed-input">
+                                    <input type="text" id="seed" placeholder="Enter seed value">
+                                    <button id="random-seed-btn" class="icon-button" aria-label="Generate random seed">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="settings-description">
+                            The seed value determines your unique grid pattern. Use different seeds for different grids.
+                            Passphrases are easier to remember, while random characters provide more entropy.
+                        </div>
+                    </div>
+
+                    <!-- Font Settings -->
+                    <div class="settings-group">
+                        <h3 class="settings-group-title">Typeface Font & Size</h3>
+                        <div class="settings-row">
+                            <div class="settings-label">Font:</div>
+                            <div class="settings-control">
+                                <select id="grid-font-family" class="font-select">
+                                    <option value="JetBrains Mono">JetBrains Mono</option>
+                                    <option value="Consolas">Consolas</option>
+                                    <option value="Courier New">Courier New</option>
+                                    <option value="Monaco">Monaco</option>
+                                    <option value="Source Code Pro">Source Code Pro</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-label">Size (px):</div>
+                            <div class="settings-control">
+                                <input type="number" id="grid-font-size" min="12" max="24" value="16" step="1">
+                            </div>
+                        </div>
+                        <div class="font-preview">
+                            <div class="font-preview-text">I i L l J j O o 1 0</div>
+                        </div>
+                        <div class="settings-description">
+                            Check for confusing "lookalike" characters: The characters above should be clearly distinguishable from one another.
+                        </div>
+                    </div>
+
+                    <!-- Grid Cell Padding -->
+                    <div class="settings-group">
+                        <h3 class="settings-group-title">Grid Cell Padding</h3>
+                        <div class="settings-row">
+                            <div class="settings-label">Padding (px):</div>
+                            <div class="settings-control">
+                                <input type="number" id="grid-padding" min="4" max="16" value="8" step="2">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Component Coloration -->
+                    <div class="settings-group">
+                        <h3 class="settings-group-title">Component Coloration</h3>
+                        <div class="settings-row">
+                            <div class="settings-label">Grid Text:</div>
+                            <div class="settings-control">
+                                <input type="color" id="grid-text-color" value="#000000">
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-label">Border Text:</div>
+                            <div class="settings-control">
+                                <input type="color" id="border-text-color" value="#4A5568">
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-label">Even Columns:</div>
+                            <div class="settings-control">
+                                <input type="color" id="even-columns-color" value="#F7FAFC">
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-label">Odd Columns:</div>
+                            <div class="settings-control">
+                                <input type="color" id="odd-columns-color" value="#FFFFFF">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Character Set Controls -->
+                    <div class="settings-group">
+                        <h3 class="settings-group-title">Character Sets</h3>
+                        <div class="char-set-controls">
+                            <div class="settings-row">
+                                <input type="checkbox" id="uppercase" checked>
+                                <label for="uppercase">Uppercase (A-Z)</label>
+                            </div>
+                            <div class="settings-row">
+                                <input type="checkbox" id="lowercase" checked>
+                                <label for="lowercase">Lowercase (a-z)</label>
+                            </div>
+                            <div class="settings-row">
+                                <input type="checkbox" id="numbers" checked>
+                                <label for="numbers">Numbers (0-9)</label>
+                            </div>
+                            <div class="settings-row">
+                                <input type="checkbox" id="special" checked>
+                                <label for="special">Special Characters</label>
+                            </div>
+                            <div class="settings-row">
+                                <input type="checkbox" id="avoid-ambiguous">
+                                <label for="avoid-ambiguous">Avoid Ambiguous Characters</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="grid-actions">
+                    <button id="print-btn" class="action-button">
+                        <span class="icon">🖨️</span>
+                        Print Grid
+                    </button>
+                    <button id="share-btn" class="action-button">
+                        <span class="icon">🔗</span>
+                        Share Grid
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <div class="help-panel" id="help-panel">
+            <div class="help-header">
+                <h2>How to Use</h2>
+                <button class="close-button" id="help-close">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
                 </button>
             </div>
+            
+            <div class="help-content">
+                <ol class="instructions-list">
+                    <li>The Seed Value creates your unique grid—change it to get a new layout (e.g., "cake-home-star").</li>
+                    <li>Choose a starting cell (like A1, C5, E15, etc.).</li>
+                    <li>Follow a movement pattern (e.g., down to A2, right to B2, for "Kj9").</li>
+                    <li>The characters you encounter become your password.</li>
+                    <li>Use different starting positions for different services (e.g., A1 for Gmail, C5 for Netflix—same pattern, different passwords).</li>
+                    <li>Numbers appear in <span class="blue-text">BLUE</span> and special characters in <span class="red-text">RED</span> if coloring is enabled.</li>
+                    <li>For maximum security, use patterns with at least 12-16 characters.</li>
+                </ol>
+            </div>
         </div>
-        
-        <div class="instructions">
-            <h2>How to Use This Password Grid</h2>
-            <p>A password grid helps you create strong, memorable passwords by combining characters from a unique pattern you choose.</p>
-            <ol>
-                <li>The Seed Value creates your unique grid—change it to get a new layout (e.g., "cake-home-star").</li>
-                <li>Choose a starting cell (like A1, C5, E15, etc.).</li>
-                <li>Follow a movement pattern (e.g., down to A2, right to B2, for "Kj9").</li>
-                <li>The characters you encounter become your password.</li>
-                <li>Use different starting positions for different services (e.g., A1 for Gmail, C5 for Netflix—same pattern, different passwords).</li>
-                <li>Numbers appear in <span class="blue-text">BLUE</span> and special characters in <span class="red-text">RED</span> if coloring is enabled (toggle in Appearance). Grey grid lines can be added for clarity.</li>
-                <li>For maximum security, use patterns with at least 12-16 characters—check the status panel above the grid for strength.</li>
-                <li>Adjust options above—the grid updates instantly.</li>
-            </ol>
-        </div>
-        
-        <footer>
-            <p>Password Grid Generator PWA - <a href="https://github.com/JRKy/pgg" target="_blank">View on GitHub</a></p>
-        </footer>
+
+        <div class="overlay" id="overlay"></div>
     </div>
 
-    <script src="js/security.js"></script>
-    <script src="js/grid-generator.js?v=2.0"></script>
-    <script src="js/ui-controller.js?v=2.0"></script>
-    <script src="js/app.js?v=2.0"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.getRegistrations().then(registrations => {
-                    registrations.forEach(reg => reg.unregister());
-                }).then(() => {
-                    navigator.serviceWorker.register('./sw.js?v=' + Date.now())
-                        .then(reg => console.log('Service Worker registered'))
-                        .catch(err => console.log('Service Worker registration failed: ', err));
-                });
-            });
-        }
-    </script>
+    <script src="./js/word-list.js"></script>
+    <script src="./js/security.js"></script>
+    <script src="./js/grid-generator.js"></script>
+    <script src="./js/ui-controller.js"></script>
+    <script src="./js/app.js"></script>
 </body>
 </html>

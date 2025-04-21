@@ -1,145 +1,207 @@
 class UIController {
     constructor(gridGenerator) {
         this.gridGenerator = gridGenerator;
-        this.presets = null;
-        this.presetVersion = null;
         this.rateLimiter = new SecurityUtils.RateLimiter();
         this.lastRequestTime = 0;
-        this.minRequestInterval = 1000; // Minimum 1 second between requests
+        this.minRequestInterval = 300;
+        this.requestQueue = [];
+        this.isProcessing = false;
+        this.initializing = true;
+        this.loadingIndicator = this.createLoadingIndicator();
+        this.gridStyles = {
+            fontSize: '16',
+            padding: '8',
+            textColor: '#000000',
+            borderColor: '#4A5568',
+            evenColumns: '#F7FAFC',
+            oddColumns: '#FFFFFF'
+        };
 
+        // Initialize CSS variables
+        this.updateCSSVariables();
+
+        // Initialize grid with a random seed
         const initialSeed = this.generateRandomPassphrase();
-        document.getElementById('seed-value').value = SecurityUtils.InputValidator.sanitizeInput(initialSeed);
+        this.currentSeed = initialSeed;
 
         this.setupEventListeners();
         this.setupTooltips();
         this.setupKeyboardNavigation();
-        this.loadPresets().then(() => {
-            this.setupPresets();
-            if (this.presets && this.presets.balanced) {
-                this.applyPreset(this.presets.balanced.config);
-            }
-            this.generateGrid();
-            this.loadFromURL();
-        });
+        this.initializing = false;
+        this.generateGrid();
+        this.loadFromURL();
+        this.loadTheme();
+        this.loadGridStylePreferences();
     }
     
-    generateRandomPassphrase() {
-        const words = [
-            'apple', 'bear', 'bird', 'blue', 'boat', 'book', 'cake', 'cat', 'cloud', 'cold', 'dance', 'dark', 'deer', 'desk', 'dog', 'door', 
-            'duck', 'eagle', 'earth', 'egg', 'face', 'farm', 'fish', 'flag', 'flower', 'food', 'fox', 'free', 'frog', 'game', 'gate', 'gift', 
-            'girl', 'goat', 'gold', 'green', 'hand', 'hat', 'hill', 'home', 'horse', 'house', 'ice', 'ink', 'island', 'jacket', 'jar', 'jet', 
-            'jump', 'key', 'king', 'kite', 'lake', 'lamp', 'leaf', 'light', 'lion', 'lock', 'map', 'milk', 'moon', 'mouse', 'mud', 'nest', 
-            'night', 'note', 'ocean', 'owl', 'park', 'pen', 'pig', 'pink', 'pipe', 'plane', 'pond', 'pool', 'queen', 'rain', 'rat', 'red', 
-            'ring', 'river', 'road', 'rock', 'roof', 'rose', 'sand', 'sea', 'ship', 'shoe', 'sky', 'snake', 'snow', 'sock', 'soup', 'star', 
-            'stone', 'sun', 'table', 'tail', 'tent', 'time', 'tree', 'truck', 'vine', 'wall', 'wave', 'wind', 'wing', 'wolf', 'wood', 'yard', 
-            'zebra', 'ball', 'bell', 'cake', 'card', 'drum', 'fish', 'glow', 'hope', 'love', 'play', 'song', 'talk', 'walk', 'wish', 'year'
-        ];
-        return `${words[Math.floor(Math.random() * words.length)]}-${words[Math.floor(Math.random() * words.length)]}-${words[Math.floor(Math.random() * words.length)]}`;
+    generateRandomPassphrase(wordCount = 3) {
+        return WordList.generatePassphrase(wordCount);
     }
-    
+
+    generateRandomCharacterSeed(length = 12) {
+        const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+            result += charset.charAt(Math.floor(Math.random() * charset.length));
+        }
+        return result;
+    }
+
     setupEventListeners() {
-        document.getElementById('seed-value').addEventListener('input', () => {
-            this.validateAndGenerateGrid();
-        });
+        // Seed type and word count controls
+        const seedTypeSelect = document.getElementById('seed-type');
+        const wordCountContainer = document.getElementById('word-count-container');
+        const wordCountSelect = document.getElementById('word-count');
+        const seedInput = document.getElementById('seed');
+        const randomSeedBtn = document.getElementById('random-seed-btn');
 
-        document.getElementById('random-seed-btn').addEventListener('click', () => {
-            const seedType = document.getElementById('seed-type').value;
-            let newSeed;
-            if (seedType === 'passphrase') {
-                newSeed = this.generateRandomPassphrase();
-            } else {
-                newSeed = this.gridGenerator.generateSecureSeed();
+        if (seedTypeSelect) {
+            seedTypeSelect.addEventListener('change', (e) => {
+                if (wordCountContainer) {
+                    wordCountContainer.style.display = e.target.value === 'passphrase' ? 'flex' : 'none';
+                }
+                this.generateNewSeed();
+            });
+        }
+
+        if (wordCountSelect) {
+            wordCountSelect.addEventListener('change', () => {
+                this.generateNewSeed();
+            });
+        }
+
+        if (seedInput) {
+            seedInput.value = this.currentSeed;
+            seedInput.addEventListener('input', (e) => {
+                this.currentSeed = SecurityUtils.InputValidator.sanitizeInput(e.target.value);
+                this.validateAndGenerateGrid();
+            });
+        }
+
+        if (randomSeedBtn) {
+            randomSeedBtn.addEventListener('click', () => {
+                this.generateNewSeed();
+            });
+        }
+
+        // Theme selection
+        const themeSelect = document.getElementById('theme-select');
+        if (themeSelect) {
+            themeSelect.addEventListener('change', (e) => {
+                this.setTheme(e.target.value);
+                this.generateGrid(); // Regenerate grid to apply theme-specific styles
+            });
+        }
+
+        // Grid appearance controls
+        const gridControls = {
+            'grid-font-size': (value) => this.updateGridStyle('fontSize', value),
+            'grid-padding': (value) => this.updateGridStyle('padding', value),
+            'grid-text-color': (value) => this.updateGridStyle('textColor', value),
+            'border-text-color': (value) => this.updateGridStyle('borderColor', value),
+            'even-columns-color': (value) => this.updateGridStyle('evenColumns', value),
+            'odd-columns-color': (value) => this.updateGridStyle('oddColumns', value)
+        };
+
+        // Set up event listeners for all grid controls
+        Object.entries(gridControls).forEach(([id, handler]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.value = this.gridStyles[id.replace(/-/g, '')] ?? element.value;
+                element.addEventListener('change', (e) => handler(e.target.value));
             }
-            document.getElementById('seed-value').value = SecurityUtils.InputValidator.sanitizeInput(newSeed);
-            this.validateAndGenerateGrid();
         });
 
-        ['uppercase', 'lowercase', 'numbers', 'special', 'avoid-ambiguous'].forEach(id => {
-            document.getElementById(id).addEventListener('change', () => {
-                this.generateGrid();
-            });
-        });
-
-        ['grid-rows', 'grid-cols'].forEach(id => {
-            document.getElementById(id).addEventListener('input', () => {
-                this.generateGrid();
-            });
-        });
-
-        document.getElementById('shading').addEventListener('change', () => {
-            this.generateGrid();
-        });
-
-        document.getElementById('inner-lines').addEventListener('change', () => {
-            this.generateGrid();
-        });
-
-        document.getElementById('colorblind-mode').addEventListener('change', (e) => {
-            document.body.classList.toggle('colorblind-mode', e.target.checked);
-            this.generateGrid();
-        });
-
-        document.getElementById('grid-theme').addEventListener('change', (e) => {
-            const theme = e.target.value;
-            localStorage.setItem('gridTheme', theme);
-            this.generateGrid();
-        });
-
-        document.getElementById('color-numbers').addEventListener('change', () => {
-            this.generateGrid();
-        });
-
-        document.getElementById('color-specials').addEventListener('change', () => {
-            this.generateGrid();
-        });
-
-        document.getElementById('print-btn').addEventListener('click', () => {
-            const rows = parseInt(document.getElementById('grid-rows').value) || 16;
-            const cols = parseInt(document.getElementById('grid-cols').value) || 16;
-            
-            if (rows > 24 || cols > 20) {
-                const proceed = confirm("This grid may be too large to fit on a single page. Continue with printing?");
-                if (!proceed) return;
-            }
-            
-            window.print();
-        });
-
-        document.getElementById('share-btn').addEventListener('click', () => {
-            const options = this.getOptionsFromUI();
-            const url = new URL(window.location);
-            Object.entries(options).forEach(([key, value]) => {
-                url.searchParams.set(key, value);
-            });
-            url.searchParams.set('theme', document.getElementById('grid-theme').value);
-            navigator.clipboard.writeText(url.toString())
-                .then(() => alert('Grid URL copied to clipboard!'))
-                .catch(err => alert('Failed to copy URL: ' + err));
-        });
-
-        document.getElementById('export-png-btn').addEventListener('click', () => {
-            html2canvas(document.getElementById('password-grid')).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `Password_Grid_${this.gridGenerator.options.seedValue}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-            }).catch(err => alert('Failed to export PNG: ' + err));
-        });
-
-        document.getElementById('export-csv-btn').addEventListener('click', () => {
-            const gridData = this.gridGenerator.generateGrid().grid;
-            let csv = 'Row,Column,Value\n';
-            gridData.forEach((row, rowIndex) => {
-                row.forEach((cell, colIndex) => {
-                    csv += `${rowIndex + 1},${String.fromCharCode(65 + colIndex)},${cell.value}\n`;
+        // Character set checkboxes
+        const charSetCheckboxes = ['uppercase', 'lowercase', 'numbers', 'special', 'avoid-ambiguous'];
+        charSetCheckboxes.forEach(id => {
+            const checkbox = document.getElementById(id);
+            if (checkbox) {
+                checkbox.addEventListener('change', () => {
+                    this.validateAndGenerateGrid();
                 });
-            });
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const link = document.createElement('a');
-            link.download = `Password_Grid_${this.gridGenerator.options.seedValue}.csv`;
-            link.href = URL.createObjectURL(blob);
-            link.click();
+            }
         });
+
+        // Print and Share buttons
+        const printBtn = document.getElementById('print-btn');
+        if (printBtn) {
+            printBtn.addEventListener('click', () => {
+                window.print();
+            });
+        }
+
+        const shareBtn = document.getElementById('share-btn');
+        if (shareBtn) {
+            shareBtn.addEventListener('click', async () => {
+                try {
+                    const url = this.generateShareURL();
+                    await navigator.clipboard.writeText(url);
+                    this.showSuccess('Grid URL copied to clipboard!');
+                } catch (err) {
+                    this.showError('Failed to copy URL: ' + err.message);
+                }
+            });
+        }
+
+        // Panel toggles
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsPanel = document.getElementById('settings-panel');
+        const settingsClose = document.getElementById('settings-close');
+        const overlay = document.getElementById('overlay');
+
+        if (settingsBtn && settingsPanel && settingsClose) {
+            settingsBtn.addEventListener('click', () => {
+                settingsPanel.classList.add('open');
+                overlay.classList.add('active');
+            });
+
+            settingsClose.addEventListener('click', () => {
+                settingsPanel.classList.remove('open');
+                overlay.classList.remove('active');
+            });
+        }
+
+        const helpBtn = document.getElementById('help-btn');
+        const helpPanel = document.getElementById('help-panel');
+        const helpClose = document.getElementById('help-close');
+
+        if (helpBtn && helpPanel && helpClose) {
+            helpBtn.addEventListener('click', () => {
+                helpPanel.classList.add('open');
+                overlay.classList.add('active');
+            });
+
+            helpClose.addEventListener('click', () => {
+                helpPanel.classList.remove('open');
+                overlay.classList.remove('active');
+            });
+        }
+
+        // Close panels when clicking overlay
+        if (overlay) {
+            overlay.addEventListener('click', () => {
+                document.querySelectorAll('.settings-panel, .help-panel').forEach(panel => {
+                    panel.classList.remove('open');
+                });
+                overlay.classList.remove('active');
+            });
+        }
+
+        // Status panel toggle
+        const statusToggle = document.querySelector('.status-toggle');
+        const statusPanel = document.querySelector('.status-panel');
+        
+        if (statusToggle && statusPanel) {
+            // Set initial state to expanded
+            statusToggle.setAttribute('aria-expanded', 'true');
+            
+            statusToggle.addEventListener('click', () => {
+                const isExpanded = statusToggle.getAttribute('aria-expanded') === 'true';
+                statusToggle.setAttribute('aria-expanded', !isExpanded);
+                statusPanel.classList.toggle('collapsed');
+            });
+        }
 
         // Add descriptive labels to form controls
         document.querySelectorAll('input, select, button').forEach(control => {
@@ -165,6 +227,24 @@ class UIController {
                 }
             }
         });
+    }
+
+    updateFontPreview() {
+        const preview = document.querySelector('.font-preview-text');
+        const fontSelect = document.getElementById('grid-font-family');
+        if (preview && fontSelect) {
+            preview.style.fontFamily = fontSelect.value;
+        }
+    }
+
+    generateShareURL() {
+        const options = this.getOptionsFromUI();
+        const url = new URL(window.location);
+        Object.entries(options).forEach(([key, value]) => {
+            url.searchParams.set(key, value);
+        });
+        url.searchParams.set('theme', document.documentElement.getAttribute('data-theme') || 'light');
+        return url.toString();
     }
 
     loadFromURL() {
@@ -198,75 +278,6 @@ class UIController {
         return requiredFields.every(field => 
             Object.prototype.hasOwnProperty.call(config, field)
         );
-    }
-
-    async loadPresets() {
-        try {
-            const response = await fetch('./presets.json');
-            if (!response.ok) {
-                throw new Error('Failed to load presets');
-            }
-            const presetData = await response.json();
-            this.presetVersion = presetData.version;
-            
-            Object.values(presetData.presets).forEach(preset => {
-                if (!this.validatePresetConfig(preset.config)) {
-                    throw new Error(`Invalid preset configuration for ${preset.label}`);
-                }
-            });
-            
-            this.presets = presetData.presets;
-        } catch (error) {
-            console.error('Error loading presets:', error);
-            this.presets = {
-                strong: {
-                    label: "Strong Security",
-                    description: "Maximum security with all character sets",
-                    config: {
-                        includeUpper: true,
-                        includeLower: true,
-                        includeNumbers: true,
-                        includeSpecial: true,
-                        avoidAmbiguous: true,
-                        gridRows: 20,
-                        gridCols: 20,
-                        shadingOption: 1,
-                        innerLines: true
-                    }
-                },
-                balanced: {
-                    label: "Balanced",
-                    description: "Good security with readable characters",
-                    config: {
-                        includeUpper: true,
-                        includeLower: true,
-                        includeNumbers: true,
-                        includeSpecial: false,
-                        avoidAmbiguous: true,
-                        gridRows: 16,
-                        gridCols: 16,
-                        shadingOption: 2,
-                        innerLines: true
-                    }
-                },
-                memorable: {
-                    label: "Memorable",
-                    description: "Easier to remember, moderate security",
-                    config: {
-                        includeUpper: true,
-                        includeLower: true,
-                        includeNumbers: false,
-                        includeSpecial: false,
-                        avoidAmbiguous: true,
-                        gridRows: 12,
-                        gridCols: 12,
-                        shadingOption: 0,
-                        innerLines: false
-                    }
-                }
-            };
-            this.presetVersion = "1.0.0-fallback";
-        }
     }
 
     async updatePresets(newPresets) {
@@ -323,14 +334,19 @@ class UIController {
     
     setupTooltips() {
         const tooltipElements = {
-            'seed-value': 'Seed value determines grid generation pattern. Use different seeds for different grids.',
+            'seed': 'Seed value determines grid generation pattern. Use different seeds for different grids.',
             'avoid-ambiguous': 'Excludes characters that can be easily confused (like 0 and O, 1 and l)',
-            'shading': 'Choose shading pattern for better visual distinction of cells'
+            'inner-lines': 'Show or hide grid cell borders',
+            'color-numbers': 'Highlight numbers in a different color',
+            'color-specials': 'Highlight special characters in a different color'
         };
 
         Object.entries(tooltipElements).forEach(([id, text]) => {
             const element = document.getElementById(id);
-            element.setAttribute('aria-describedby', `${id}-tooltip`);
+            if (element) {
+                element.setAttribute('aria-describedby', `${id}-tooltip`);
+                element.setAttribute('title', text);
+            }
         });
     }
     
@@ -413,76 +429,67 @@ class UIController {
     }
     
     getOptionsFromUI() {
-        const options = {
-            seedValue: document.getElementById('seed-value').value || "TANGO",
-            includeUpper: document.getElementById('uppercase').checked,
-            includeLower: document.getElementById('lowercase').checked,
-            includeNumbers: document.getElementById('numbers').checked,
-            includeSpecial: document.getElementById('special').checked,
-            avoidAmbiguous: document.getElementById('avoid-ambiguous').checked,
-            gridRows: parseInt(document.getElementById('grid-rows').value, 10) || 16,
-            gridCols: parseInt(document.getElementById('grid-cols').value, 10) || 16,
-            shadingOption: parseInt(document.getElementById('shading').value, 10) || 0,
-            innerLines: document.getElementById('inner-lines').checked,
-            colorNumbers: document.getElementById('color-numbers').checked,
-            colorSpecials: document.getElementById('color-specials').checked
+        const getElementValue = (id, defaultValue) => {
+            const element = document.getElementById(id);
+            return element ? element.value : defaultValue;
         };
+
+        const getElementChecked = (id, defaultValue) => {
+            const element = document.getElementById(id);
+            return element ? element.checked : defaultValue;
+        };
+
+        const options = {
+            seedValue: this.currentSeed,  // Use the stored seed value
+            includeUpper: getElementChecked('uppercase', true),
+            includeLower: getElementChecked('lowercase', true),
+            includeNumbers: getElementChecked('numbers', true),
+            includeSpecial: getElementChecked('special', true),
+            avoidAmbiguous: getElementChecked('avoid-ambiguous', false),
+            gridRows: parseInt(getElementValue('grid-rows', '16'), 10) || 16,
+            gridCols: parseInt(getElementValue('grid-cols', '16'), 10) || 16,
+            shadingPattern: getElementValue('shading', 'none'),
+            innerLines: getElementChecked('inner-lines', false),
+            colorNumbers: getElementChecked('color-numbers', true),
+            colorSpecials: getElementChecked('color-specials', true)
+        };
+
         return options;
     }
     
-    updateStatusPanel(result) {
-        const { metrics, charSets } = result;
-        
-        document.getElementById('char-sets-status').textContent = charSets;
-        document.getElementById('entropy-per-char').textContent = `${metrics.entropyPerChar} bits`;
-        document.getElementById('password-strength').textContent = 
-            `${metrics.pathLength}-char: ${metrics.totalEntropy} bits`;
-        
+    updateStatusPanel(gridData) {
+        const strengthElement = document.getElementById('password-strength');
         const complexityElement = document.getElementById('complexity-rating');
-        complexityElement.textContent = metrics.complexityRating.text;
-        complexityElement.className = metrics.complexityRating.class;
+        const charSetsElement = document.getElementById('char-sets-status');
+        
+        if (strengthElement && complexityElement && charSetsElement) {
+            const metrics = gridData.metrics;
+            strengthElement.textContent = `${metrics.totalEntropy} bits`;
+            complexityElement.textContent = metrics.complexityRating.text;
+            complexityElement.className = `metric-description ${metrics.complexityRating.class}`;
+            charSetsElement.textContent = gridData.charSets;
+        }
     }
     
     renderGrid(gridData) {
         const gridContainer = document.getElementById('password-grid');
         let table = document.createElement('table');
-        table.className = 'grid';
+        table.className = 'grid-table';
         table.setAttribute('role', 'grid');
         table.setAttribute('aria-label', `Password Grid with ${gridData.length} rows and ${gridData[0].length} columns`);
         
-        const theme = document.getElementById('grid-theme').value;
-        table.classList.add(`theme-${theme}`);
+        // Apply all current styles to the table
+        const {fontSize, padding, textColor, borderColor, evenColumns, oddColumns} = this.gridStyles;
         
-        if (this.gridGenerator.options.innerLines) {
-            table.classList.add('with-inner-lines');
-        }
-        
-        if (!document.body.classList.contains('colorblind-mode')) {
-            switch (parseInt(this.gridGenerator.options.shadingOption)) {
-                case 1:
-                    table.classList.add('checkerboard-2x2');
-                    break;
-                case 2:
-                    table.classList.add('alt-rows');
-                    break;
-                case 3:
-                    table.classList.add('diag-stripes');
-                    break;
-                case 4:
-                    table.classList.add('quadrants');
-                    break;
-                case 5:
-                    table.classList.add('sparse-dots');
-                    break;
-            }
-        }
+        table.classList.add(
+            `font-size-${fontSize}`,
+            `padding-${padding}`
+        );
 
-        if (this.gridGenerator.options.colorNumbers) {
-            table.classList.add('color-numbers');
-        }
-        if (this.gridGenerator.options.colorSpecials) {
-            table.classList.add('color-specials');
-        }
+        table.setAttribute('data-text-color', textColor);
+        table.setAttribute('data-border-color', borderColor);
+        table.setAttribute('data-even-columns', evenColumns);
+        table.setAttribute('data-odd-columns', oddColumns);
         
         let thead = document.createElement('thead');
         let titleRow = document.createElement('tr');
@@ -569,8 +576,8 @@ class UIController {
         gridContainer.innerHTML = '';
         gridContainer.appendChild(table);
         
-        // Set focus to the first cell after grid update
-        setTimeout(() => this.focusFirstGridCell(), 0);
+        // Remove automatic focus on first cell
+        // setTimeout(() => this.focusFirstGridCell(), 0);
     }
     
     applyPreset(config) {
@@ -582,11 +589,13 @@ class UIController {
             avoidAmbiguous: 'avoid-ambiguous',
             gridRows: 'grid-rows',
             gridCols: 'grid-cols',
-            shadingOption: 'shading',
+            shadingPattern: 'shading',
             innerLines: 'inner-lines',
             colorNumbers: 'color-numbers',
             colorSpecials: 'color-specials'
         };
+
+        // Set all values first
         Object.entries(config).forEach(([key, value]) => {
             const elementId = idMap[key] || key;
             const element = document.getElementById(elementId);
@@ -594,19 +603,23 @@ class UIController {
                 if (element.type === 'checkbox') {
                     element.checked = value;
                     element.setAttribute('aria-checked', value.toString());
-                    element.dispatchEvent(new Event('change'));
                 } else {
                     element.value = value;
-                    element.dispatchEvent(new Event('input'));
                 }
             }
         });
+
+        // Then trigger a single change event
+        if (!this.initializing) {
+            this.validateAndGenerateGrid();
+        }
     }
     
     saveSettings() {
         try {
             const options = this.getOptionsFromUI();
-            options.theme = document.getElementById('grid-theme').value;
+            // Get theme from document attribute instead of element
+            options.theme = document.documentElement.getAttribute('data-theme') || 'light';
             localStorage.setItem('passGridOptions', JSON.stringify(options));
         } catch (e) {
             console.warn('Could not save settings to localStorage', e);
@@ -620,19 +633,34 @@ class UIController {
                 const options = JSON.parse(savedOptions);
                 this.gridGenerator.setOptions(options);
                 
-                document.getElementById('seed-value').value = options.seedValue || "TANGO";
-                document.getElementById('uppercase').checked = options.includeUpper !== false;
-                document.getElementById('lowercase').checked = options.includeLower !== false;
-                document.getElementById('numbers').checked = options.includeNumbers !== false;
-                document.getElementById('special').checked = options.includeSpecial !== false;
-                document.getElementById('avoid-ambiguous').checked = options.avoidAmbiguous === true;
-                document.getElementById('grid-rows').value = options.gridRows || 16;
-                document.getElementById('grid-cols').value = options.gridCols || 16;
-                document.getElementById('shading').value = options.shadingOption || 0;
-                document.getElementById('inner-lines').checked = options.innerLines !== false;
-                document.getElementById('grid-theme').value = options.theme || 'classic';
-                document.getElementById('color-numbers').checked = options.colorNumbers !== false;
-                document.getElementById('color-specials').checked = options.colorSpecials !== false;
+                // Safely set values with null checks
+                const setElementValue = (id, value) => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.value = value;
+                    }
+                };
+
+                const setElementChecked = (id, value) => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.checked = value;
+                    }
+                };
+
+                setElementValue('seed', options.seedValue || "TANGO");
+                setElementChecked('uppercase', options.includeUpper !== false);
+                setElementChecked('lowercase', options.includeLower !== false);
+                setElementChecked('numbers', options.includeNumbers !== false);
+                setElementChecked('special', options.includeSpecial !== false);
+                setElementChecked('avoid-ambiguous', options.avoidAmbiguous === true);
+                setElementValue('grid-rows', options.gridRows || 16);
+                setElementValue('grid-cols', options.gridCols || 16);
+                setElementValue('shading', options.shadingPattern || 'none');
+                setElementChecked('inner-lines', options.innerLines !== false);
+                setElementValue('grid-theme', options.theme || 'classic');
+                setElementChecked('color-numbers', options.colorNumbers !== false);
+                setElementChecked('color-specials', options.colorSpecials !== false);
             }
         } catch (e) {
             console.warn('Could not load settings from localStorage', e);
@@ -640,68 +668,105 @@ class UIController {
         this.generateGrid();
     }
     
-    validateAndGenerateGrid() {
-        try {
-            const seedInput = document.getElementById('seed-value');
-            const seed = SecurityUtils.InputValidator.validateSeed(seedInput.value);
-            
-            // Rate limiting check
+    createLoadingIndicator() {
+        const indicator = document.createElement('div');
+        indicator.className = 'loading-indicator';
+        indicator.innerHTML = '<span class="spinner"></span>Updating grid...';
+        document.body.appendChild(indicator);
+        return indicator;
+    }
+
+    showLoadingIndicator() {
+        this.loadingIndicator.classList.add('show');
+    }
+
+    hideLoadingIndicator() {
+        this.loadingIndicator.classList.remove('show');
+    }
+
+    async processRequestQueue() {
+        if (this.isProcessing || this.requestQueue.length === 0) return;
+        
+        this.isProcessing = true;
+        this.showLoadingIndicator();
+        
+        while (this.requestQueue.length > 0) {
             const now = Date.now();
             if (now - this.lastRequestTime < this.minRequestInterval) {
-                console.warn('Too many requests. Please wait a moment.');
-                return;
+                await new Promise(resolve => setTimeout(resolve, this.minRequestInterval));
+                continue;
+            }
+            
+            this.lastRequestTime = now;
+            await this.generateGrid();
+            this.requestQueue.shift();
+        }
+        
+        this.isProcessing = false;
+        this.hideLoadingIndicator();
+    }
+
+    validateAndGenerateGrid() {
+        try {
+            const seedInput = document.getElementById('seed');
+            const seed = SecurityUtils.InputValidator.validateSeed(seedInput.value);
+            
+            // Skip rate limiting during initialization
+            if (!this.initializing) {
+                const now = Date.now();
+                if (now - this.lastRequestTime < this.minRequestInterval) {
+                    // Add request to queue instead of showing error
+                    if (!this.requestQueue.includes('pending')) {
+                        this.requestQueue.push('pending');
+                        this.processRequestQueue();
+                    }
+                    return;
+                }
+                this.lastRequestTime = now;
             }
 
-            // Update last request time
-            this.lastRequestTime = now;
-
-            // Proceed with grid generation
             this.generateGrid();
         } catch (error) {
             this.showError(error.message);
         }
     }
 
-    showError(message, duration = 5000) {
-        const errorDiv = document.getElementById('error-message');
-        errorDiv.textContent = message;
-        errorDiv.setAttribute('role', 'alert');
-        errorDiv.setAttribute('aria-live', 'assertive');
-        errorDiv.classList.add('show');
-        
-        // Announce error to screen readers
+    showNotification(message, type = 'error', duration = 5000) {
+        const notification = document.getElementById('notification');
+        if (!notification) return;
+
+        // Clear any existing classes and timeouts
+        notification.className = 'notification';
+        if (this.notificationTimeout) {
+            clearTimeout(this.notificationTimeout);
+        }
+
+        // Set the message and show the notification
+        notification.textContent = message;
+        notification.classList.add(type, 'show');
+
+        // Set up screen reader announcement
         const announcement = document.createElement('div');
-        announcement.setAttribute('role', 'status');
-        announcement.setAttribute('aria-live', 'polite');
         announcement.className = 'sr-only';
-        announcement.textContent = `Error: ${message}`;
+        announcement.textContent = `${type === 'error' ? 'Error' : 'Success'}: ${message}`;
         document.body.appendChild(announcement);
-        
-        setTimeout(() => {
-            errorDiv.classList.remove('show');
-            document.body.removeChild(announcement);
+
+        // Hide the notification after duration
+        this.notificationTimeout = setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                notification.textContent = '';
+                announcement.remove();
+            }, 300); // Wait for fade out animation
         }, duration);
     }
 
+    showError(message, duration = 5000) {
+        this.showNotification(message, 'error', duration);
+    }
+
     showSuccess(message, duration = 3000) {
-        const successDiv = document.getElementById('success-message');
-        successDiv.textContent = message;
-        successDiv.setAttribute('role', 'status');
-        successDiv.setAttribute('aria-live', 'polite');
-        successDiv.classList.add('show');
-        
-        // Announce success to screen readers
-        const announcement = document.createElement('div');
-        announcement.setAttribute('role', 'status');
-        announcement.setAttribute('aria-live', 'polite');
-        announcement.className = 'sr-only';
-        announcement.textContent = message;
-        document.body.appendChild(announcement);
-        
-        setTimeout(() => {
-            successDiv.classList.remove('show');
-            document.body.removeChild(announcement);
-        }, duration);
+        this.showNotification(message, 'success', duration);
     }
 
     generateGrid() {
@@ -716,5 +781,161 @@ class UIController {
             alert(`Error generating grid: ${error.message}`);
             console.error(error);
         }
+    }
+
+    loadTheme() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        this.setTheme(savedTheme);
+    }
+
+    setTheme(theme) {
+        // Set theme on document
+        document.documentElement.setAttribute('data-theme', theme);
+        
+        // Update select element if it exists
+        const themeSelect = document.getElementById('theme-select');
+        if (themeSelect) {
+            themeSelect.value = theme;
+        }
+        
+        // Save to localStorage
+        localStorage.setItem('theme', theme);
+        
+        // Update any theme-dependent styles
+        this.generateGrid();
+    }
+
+    toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        this.setTheme(newTheme);
+    }
+
+    ensureMinimumSecurity() {
+        const checkboxes = {
+            uppercase: document.getElementById('uppercase'),
+            lowercase: document.getElementById('lowercase'),
+            numbers: document.getElementById('numbers'),
+            special: document.getElementById('special')
+        };
+
+        // Count selected character sets
+        const selectedCount = Object.values(checkboxes).filter(cb => cb.checked).length;
+
+        // If only one set is selected, automatically enable another set
+        if (selectedCount === 1) {
+            const unselected = Object.entries(checkboxes)
+                .filter(([_, cb]) => !cb.checked)
+                .map(([id, _]) => id);
+
+            if (unselected.length > 0) {
+                // Prefer numbers if available, then special, then lowercase
+                const priorityOrder = ['numbers', 'special', 'lowercase', 'uppercase'];
+                const setToEnable = priorityOrder.find(id => unselected.includes(id));
+                
+                if (setToEnable) {
+                    checkboxes[setToEnable].checked = true;
+                    // Show a subtle notification that we've enabled an additional set
+                    this.showSecurityNotification(`Added ${setToEnable} characters for better security`);
+                }
+            }
+        }
+    }
+
+    showSecurityNotification(message) {
+        // Create notification element if it doesn't exist
+        let notification = document.getElementById('security-notification');
+        if (!notification) {
+            notification = document.createElement('div');
+            notification.id = 'security-notification';
+            notification.className = 'security-notification';
+            document.body.appendChild(notification);
+        }
+
+        // Update and show notification
+        notification.textContent = message;
+        notification.classList.add('show');
+
+        // Hide after 3 seconds
+        setTimeout(() => {
+            notification.classList.remove('show');
+        }, 3000);
+    }
+
+    updateCSSVariables() {
+        const root = document.documentElement;
+        root.style.setProperty('--grid-font-size', `${this.gridStyles.fontSize}px`);
+        root.style.setProperty('--grid-cell-padding', `${this.gridStyles.padding}px`);
+        root.style.setProperty('--grid-text-color', this.gridStyles.textColor);
+        root.style.setProperty('--border-text-color', this.gridStyles.borderColor);
+        root.style.setProperty('--even-columns-color', this.gridStyles.evenColumns);
+        root.style.setProperty('--odd-columns-color', this.gridStyles.oddColumns);
+    }
+
+    updateGridStyle(property, value) {
+        // Update the style in our state
+        this.gridStyles[property] = value;
+
+        // Update CSS variables
+        this.updateCSSVariables();
+
+        // Save the updated style to localStorage
+        localStorage.setItem('gridStyles', JSON.stringify(this.gridStyles));
+
+        // Regenerate grid to apply changes if needed
+        if (['fontSize', 'padding'].includes(property)) {
+            this.generateGrid();
+        }
+    }
+
+    setupGridStyleControls() {
+        // The grid style controls are now handled in setupEventListeners
+        // This method is kept for backward compatibility
+        return;
+    }
+
+    loadGridStylePreferences() {
+        // Load saved grid styles from localStorage
+        const savedStyles = localStorage.getItem('gridStyles');
+        if (savedStyles) {
+            this.gridStyles = { ...this.gridStyles, ...JSON.parse(savedStyles) };
+            this.updateCSSVariables();
+        }
+
+        // Apply saved styles to controls
+        const controls = {
+            'grid-font-size': this.gridStyles.fontSize,
+            'grid-padding': this.gridStyles.padding,
+            'grid-text-color': this.gridStyles.textColor,
+            'border-text-color': this.gridStyles.borderColor,
+            'even-columns-color': this.gridStyles.evenColumns,
+            'odd-columns-color': this.gridStyles.oddColumns
+        };
+
+        Object.entries(controls).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.value = value;
+            }
+        });
+    }
+
+    async generateNewSeed() {
+        const seedType = document.getElementById('seed-type')?.value || 'passphrase';
+        const wordCount = parseInt(document.getElementById('word-count')?.value || '3', 10);
+        const seedInput = document.getElementById('seed');
+
+        let newSeed;
+        if (seedType === 'passphrase') {
+            newSeed = this.generateRandomPassphrase(wordCount);
+        } else {
+            newSeed = this.generateRandomCharacterSeed();
+        }
+
+        this.currentSeed = newSeed;
+        if (seedInput) {
+            seedInput.value = newSeed;
+        }
+        this.validateAndGenerateGrid();
     }
 }
