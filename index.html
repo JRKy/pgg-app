@@ -30,27 +30,56 @@
             </div>
         </header>
 
-        <div id="help-panel" class="panel hidden">
+        <div id="help-panel" class="panel">
             <h2>How to Use</h2>
-            <p>This tool generates a secure password grid that you can print and carry with you. Here's how it works:</p>
-            <ol>
-                <li>Enter a seed phrase (or use the random one provided)</li>
-                <li>Customize the grid size and character sets</li>
-                <li>Print the grid and keep it in a safe place</li>
-                <li>To use a password, follow a path through the grid</li>
-            </ol>
-            <p>For example, to create the password "P@ssw0rd":</p>
-            <ul>
-                <li>Start at cell A1 (P)</li>
-                <li>Move right 3 cells (@)</li>
-                <li>Move down 2 cells (s)</li>
-                <li>Move right 1 cell (s)</li>
-                <li>Move down 1 cell (w)</li>
-                <li>Move right 2 cells (0)</li>
-                <li>Move down 1 cell (r)</li>
-                <li>Move right 1 cell (d)</li>
-            </ul>
-            <p>Your password is: P@ssw0rd</p>
+            <div class="help-content">
+                <h3>Generating a Grid</h3>
+                <p>Create a unique password grid by following these steps:</p>
+                <ol>
+                    <li>Enter a seed phrase or use the random generator</li>
+                    <li>Adjust grid size (5-38 rows, 5-26 columns)</li>
+                    <li>Select character sets to include</li>
+                    <li>Optionally enable "Avoid Ambiguous" to exclude similar-looking characters</li>
+                </ol>
+
+                <h3>Creating Passwords</h3>
+                <p>Use the grid to create strong, memorable passwords:</p>
+                <ol>
+                    <li>Choose a starting point (e.g., A1)</li>
+                    <li>Follow a path through the grid (e.g., right 3, down 2)</li>
+                    <li>Combine multiple movements for complex passwords</li>
+                    <li>Remember your path pattern instead of the password itself</li>
+                </ol>
+
+                <h3>Grid Features</h3>
+                <ul>
+                    <li><strong>Font Options</strong>: Choose from multiple monospace fonts</li>
+                    <li><strong>Font Size</strong>: Adjust text size for better readability</li>
+                    <li><strong>Column Shading</strong>: Alternating columns for easier tracking</li>
+                    <li><strong>Print Optimization</strong>: Grids print cleanly for offline use</li>
+                </ul>
+
+                <h3>Export Options</h3>
+                <ul>
+                    <li><strong>Print</strong>: Generate a printer-friendly version (Ctrl+P or ⌘+P)</li>
+                    <li><strong>Share</strong>: Copy a URL to share your grid configuration</li>
+                    <li><strong>PNG Export</strong>: Save the grid as an image file</li>
+                </ul>
+
+                <h3>Keyboard Shortcuts</h3>
+                <ul>
+                    <li><kbd>p</kbd> - Print grid</li>
+                    <li><kbd>s</kbd> - Share grid URL</li>
+                </ul>
+
+                <h3>Tips</h3>
+                <ul>
+                    <li>Use meaningful seed phrases for easier recall</li>
+                    <li>Create multiple paths through the grid for different services</li>
+                    <li>Print your grid for offline access</li>
+                    <li>Share grids securely with trusted individuals</li>
+                </ul>
+            </div>
         </div>
 
         <div id="options-panel" class="panel hidden">

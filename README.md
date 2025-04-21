@@ -1,52 +1,91 @@
-# PGG - Password Grid Generator
+# Password Grid Generator
 
-A Progressive Web App (PWA) for crafting secure, memorable passwords with customizable grids. Generate unique password patterns using seeds, character sets, and stylish themes—ideal for anyone wanting strong passwords with a personal touch.
-
-Live demo: [https://jrky.github.io/pgg/](https://jrky.github.io/pgg/)
+A secure and user-friendly web application for generating password grids that can be used to create strong, memorable passwords.
 
 ## Features
-- **Custom Grids**: Adjust rows (5-38), columns (5-26), and character sets (uppercase, lowercase, numbers, special).
-- **Seed-Driven**: Input passphrases (e.g., "cake-home-star") or random strings for unique grids.
-- **Themes**: Pick from Classic, Blueprint, Retro, Minimal, or Forest looks.
-- **Patterns**: Add visual flair with Checkerboard, Alternating Rows, Diagonal Stripes, Quadrants, or Sparse Dots.
-- **Accessibility**: Colorblind Mode swaps colors for patterns.
-- **Export**: Print, share via URL, or save as PNG/CSV.
-- **Offline Ready**: PWA with Service Worker caching.
-- **Live Updates**: Grid refreshes instantly with option changes.
 
-## Installation
-1. **Clone the Repo**:
-   ```bash
-   git clone https://github.com/JRKy/pgg.git
-   cd pgg
-   ```
-2. **Serve Locally** (optional):
-   - Use `npx serve` or `python -m http.server 8000`.
-   - Open `http://localhost:8000`.
-3. **Deploy to GitHub Pages**:
-   - Push to `main` branch.
-   - Enable GitHub Pages: Settings > Pages > Source: `main`, Folder: `/ (root)`.
+- **Grid Generation**
+  - Customizable grid size (5-38 rows, 5-26 columns)
+  - Configurable character sets (uppercase, lowercase, numbers, special characters)
+  - Option to avoid ambiguous characters (0O1l)
+  - Unique grid generation based on seed value
+
+- **Grid Appearance**
+  - Multiple font options (JetBrains Mono, Courier New, Consolas, System Monospace)
+  - Adjustable font size
+  - Alternating column shading for better readability
+  - Optimized for both screen and print
+
+- **Export Options**
+  - Print grid directly
+  - Share grid via URL
+  - Export as PNG image
+
+- **User Interface**
+  - Modern, responsive design
+  - Compact settings panel
+  - Keyboard shortcuts for common actions
+  - Progressive Web App (PWA) support
 
 ## Usage
-1. **Set a Seed**: Enter a passphrase or hit "Random Seed."
-2. **Customize**: Tweak character sets, grid size, shading, and theme.
-3. **Generate**: Grid updates live—start at a cell (e.g., A1), trace a pattern (e.g., down, right) for your password.
-4. **Export**: Print, share URL, or save as PNG/CSV.
-5. **Tips**: Aim for 12-16 character patterns—check status panel for strength.
 
-## Files
-- `index.html`: Core app page
-- `sw.js`: Service Worker for offline support
-- `css/styles.css`: Styles with theme definitions
-- `js/ui-controller.js`: UI and grid rendering logic
-- `js/grid-generator.js`: Grid generation engine
-- `js/app.js`: App initialization
-- `manifest.json`: PWA manifest
-- `presets.json`: Preset configs
-- `img/icons/`: App icons
+1. **Generate a Grid**
+   - Enter a seed phrase or use the random generator
+   - Adjust grid size and character sets as needed
+   - The grid will automatically update with your changes
 
-## Credits
-Created by [jrky](https://github.com/JRKy) with assist from Grok (xAI). Contributions welcome—fork, tweak, PR!
+2. **Create Passwords**
+   - Follow a path through the grid to create passwords
+   - Example: Start at A1, move right 3, down 2, etc.
+   - Combine movements to create complex passwords
+
+3. **Save and Share**
+   - Print the grid for offline use
+   - Share the grid configuration via URL
+   - Export as PNG for digital storage
+
+## Keyboard Shortcuts
+
+- `p` - Print grid
+- `s` - Share grid URL
+
+## Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/JRKy/pgg-app.git
+   ```
+
+2. Navigate to the project directory:
+   ```bash
+   cd pgg-app
+   ```
+
+3. Start a local server:
+   ```bash
+   python -m http.server 8000
+   ```
+
+4. Open in browser:
+   ```
+   http://localhost:8000
+   ```
+
+## Browser Support
+
+- Chrome (recommended)
+- Firefox
+- Safari
+- Edge
 
 ## License
-MIT License—free to use, modify, share. See [LICENSE](LICENSE) for details.
+
+MIT License - See LICENSE file for details
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
