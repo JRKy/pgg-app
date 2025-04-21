@@ -58,17 +58,17 @@ class UIController {
             const savedSettings = localStorage.getItem(this.STORAGE_KEY);
             if (savedSettings) {
                 const settings = JSON.parse(savedSettings);
-                document.getElementById('grid-font').value = settings.fontFamily || "'JetBrains Mono'";
+                document.getElementById('grid-font').value = settings.fontFamily || "'JetBrains Mono', monospace";
                 document.getElementById('font-size').value = settings.fontSize || "14";
             } else {
                 // Set defaults if no saved settings
-                document.getElementById('grid-font').value = "'JetBrains Mono'";
+                document.getElementById('grid-font').value = "'JetBrains Mono', monospace";
                 document.getElementById('font-size').value = "14";
             }
         } catch (error) {
             console.error('Error loading appearance settings:', error);
             // Set defaults on error
-            document.getElementById('grid-font').value = "'JetBrains Mono'";
+            document.getElementById('grid-font').value = "'JetBrains Mono', monospace";
             document.getElementById('font-size').value = "14";
         }
     }
