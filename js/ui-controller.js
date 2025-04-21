@@ -140,6 +140,31 @@ class UIController {
             link.href = URL.createObjectURL(blob);
             link.click();
         });
+
+        // Add descriptive labels to form controls
+        document.querySelectorAll('input, select, button').forEach(control => {
+            if (!control.id) return;
+            
+            const label = document.querySelector(`label[for="${control.id}"]`);
+            if (label) {
+                control.setAttribute('aria-labelledby', label.id);
+            }
+            
+            // Add help text if available
+            const helpText = control.getAttribute('data-help');
+            if (helpText) {
+                const helpId = `${control.id}-help`;
+                control.setAttribute('aria-describedby', helpId);
+                
+                if (!document.getElementById(helpId)) {
+                    const helpElement = document.createElement('div');
+                    helpElement.id = helpId;
+                    helpElement.className = 'sr-only';
+                    helpElement.textContent = helpText;
+                    control.parentNode.insertBefore(helpElement, control.nextSibling);
+                }
+            }
+        });
     }
 
     loadFromURL() {
@@ -320,8 +345,71 @@ class UIController {
                 case 's':
                     document.getElementById('share-btn').click();
                     break;
+                case 'ArrowUp':
+                case 'ArrowDown':
+                case 'ArrowLeft':
+                case 'ArrowRight':
+                    this.handleGridNavigation(e);
+                    break;
+                case 'Home':
+                    this.focusFirstGridCell();
+                    break;
+                case 'End':
+                    this.focusLastGridCell();
+                    break;
             }
         });
+    }
+
+    handleGridNavigation(e) {
+        const currentCell = document.activeElement;
+        if (!currentCell || !currentCell.closest('.grid')) return;
+
+        e.preventDefault();
+        const grid = currentCell.closest('table');
+        const cells = Array.from(grid.querySelectorAll('td'));
+        const currentIndex = cells.indexOf(currentCell);
+        
+        let nextIndex;
+        switch(e.key) {
+            case 'ArrowUp':
+                nextIndex = currentIndex - grid.rows[1].cells.length;
+                break;
+            case 'ArrowDown':
+                nextIndex = currentIndex + grid.rows[1].cells.length;
+                break;
+            case 'ArrowLeft':
+                nextIndex = currentIndex - 1;
+                break;
+            case 'ArrowRight':
+                nextIndex = currentIndex + 1;
+                break;
+        }
+
+        if (nextIndex >= 0 && nextIndex < cells.length) {
+            cells[nextIndex].focus();
+        }
+    }
+
+    focusFirstGridCell() {
+        const grid = document.querySelector('.grid');
+        if (grid) {
+            const firstCell = grid.querySelector('td');
+            if (firstCell) {
+                firstCell.focus();
+            }
+        }
+    }
+
+    focusLastGridCell() {
+        const grid = document.querySelector('.grid');
+        if (grid) {
+            const cells = grid.querySelectorAll('td');
+            const lastCell = cells[cells.length - 1];
+            if (lastCell) {
+                lastCell.focus();
+            }
+        }
     }
     
     getOptionsFromUI() {
@@ -359,6 +447,8 @@ class UIController {
         const gridContainer = document.getElementById('password-grid');
         let table = document.createElement('table');
         table.className = 'grid';
+        table.setAttribute('role', 'grid');
+        table.setAttribute('aria-label', `Password Grid with ${gridData.length} rows and ${gridData[0].length} columns`);
         
         const theme = document.getElementById('grid-theme').value;
         table.classList.add(`theme-${theme}`);
@@ -428,9 +518,12 @@ class UIController {
             rowHeader.textContent = rowIndex + 1;
             tr.appendChild(rowHeader);
             
-            row.forEach(cell => {
+            row.forEach((cell, colIndex) => {
                 let td = document.createElement('td');
                 td.textContent = cell.value;
+                td.setAttribute('role', 'gridcell');
+                td.setAttribute('aria-label', `Cell ${rowIndex + 1}${String.fromCharCode(65 + colIndex)}: ${cell.value}`);
+                td.setAttribute('tabindex', '0');
                 
                 if (cell.type === 'number') td.classList.add('number-cell');
                 if (cell.type === 'special') td.classList.add('special-cell');
@@ -475,6 +568,9 @@ class UIController {
         
         gridContainer.innerHTML = '';
         gridContainer.appendChild(table);
+        
+        // Set focus to the first cell after grid update
+        setTimeout(() => this.focusFirstGridCell(), 0);
     }
     
     applyPreset(config) {
@@ -566,23 +662,46 @@ class UIController {
         }
     }
 
-    showError(message) {
-        // Create or get error message element
-        let errorElement = document.getElementById('error-message');
-        if (!errorElement) {
-            errorElement = document.createElement('div');
-            errorElement.id = 'error-message';
-            errorElement.className = 'error-message';
-            document.querySelector('.options-panel').prepend(errorElement);
-        }
-
-        errorElement.textContent = message;
-        errorElement.style.display = 'block';
-
-        // Hide error after 5 seconds
+    showError(message, duration = 5000) {
+        const errorDiv = document.getElementById('error-message');
+        errorDiv.textContent = message;
+        errorDiv.setAttribute('role', 'alert');
+        errorDiv.setAttribute('aria-live', 'assertive');
+        errorDiv.classList.add('show');
+        
+        // Announce error to screen readers
+        const announcement = document.createElement('div');
+        announcement.setAttribute('role', 'status');
+        announcement.setAttribute('aria-live', 'polite');
+        announcement.className = 'sr-only';
+        announcement.textContent = `Error: ${message}`;
+        document.body.appendChild(announcement);
+        
         setTimeout(() => {
-            errorElement.style.display = 'none';
-        }, 5000);
+            errorDiv.classList.remove('show');
+            document.body.removeChild(announcement);
+        }, duration);
+    }
+
+    showSuccess(message, duration = 3000) {
+        const successDiv = document.getElementById('success-message');
+        successDiv.textContent = message;
+        successDiv.setAttribute('role', 'status');
+        successDiv.setAttribute('aria-live', 'polite');
+        successDiv.classList.add('show');
+        
+        // Announce success to screen readers
+        const announcement = document.createElement('div');
+        announcement.setAttribute('role', 'status');
+        announcement.setAttribute('aria-live', 'polite');
+        announcement.className = 'sr-only';
+        announcement.textContent = message;
+        document.body.appendChild(announcement);
+        
+        setTimeout(() => {
+            successDiv.classList.remove('show');
+            document.body.removeChild(announcement);
+        }, duration);
     }
 
     generateGrid() {
