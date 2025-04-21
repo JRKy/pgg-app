@@ -1,0 +1,12 @@
+{
+  "name": "password-grid-generator",
+  "version": "1.0.0",
+  "description": "A secure password grid generator",
+  "main": "generate-icons.js",
+  "scripts": {
+    "generate-icons": "node generate-icons.js"
+  },
+  "dependencies": {
+    "canvas": "^2.11.2"
+  }
+} 
