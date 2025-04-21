@@ -4,8 +4,6 @@
 
 A secure and user-friendly web application for generating password grids. Create strong, memorable passwords using visual patterns on a customizable grid.
 
-![Password Grid Generator Screenshot](img/screenshot.png)
-
 ## 🌟 Features
 
 ### Grid Generation
